@@ -1,8 +1,5 @@
 import javax.xml.transform.Result;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class WalletRepository {
     private Connection connection = MyConnection.connection;
@@ -17,12 +14,18 @@ public class WalletRepository {
         preparedStatement.close();
     }
 
-    public void insert(Wallet wallet) throws SQLException {
+    public Integer insert(Wallet wallet) throws SQLException {
         String insert = "INSERT INTO wallet (amount) values (?);";
-        PreparedStatement preparedStatement = connection.prepareStatement(insert);
+        PreparedStatement preparedStatement = connection.prepareStatement(insert, Statement.RETURN_GENERATED_KEYS);
         preparedStatement.setInt(1, wallet.getAmount());
-        preparedStatement.execute();
+        preparedStatement.executeUpdate();
+        ResultSet generatedKey = preparedStatement.getGeneratedKeys();
+        Integer id = null;
+        if (generatedKey.next()){
+            id = generatedKey.getInt(1);
+        }
         preparedStatement.close();
+        return id;
     }
 
     public void update(Wallet wallet) throws SQLException {
