@@ -1,8 +1,12 @@
 import javax.xml.transform.Result;
 import java.sql.*;
+import java.util.*;
 
 public class WalletRepository {
     private Connection connection = MyConnection.connection;
+
+
+    Map<String, List<Wallet>> cache = new HashMap<>();
 
     public WalletRepository() throws SQLException {
         String createTable = "CREATE TABLE IF NOT EXISTS wallet(" +
@@ -21,7 +25,7 @@ public class WalletRepository {
         preparedStatement.executeUpdate();
         ResultSet generatedKey = preparedStatement.getGeneratedKeys();
         Integer id = null;
-        if (generatedKey.next()){
+        if (generatedKey.next()) {
             id = generatedKey.getInt(1);
         }
         preparedStatement.close();
@@ -48,28 +52,38 @@ public class WalletRepository {
         preparedStatement.close();
     }
 
-    public WalletList findAll() throws SQLException {
+    public List<Wallet> findAll() throws SQLException {
         String findAll = "SELECT * FROM wallet";
+        if (cache.containsKey(findAll))
+            return cache.get(findAll);
         PreparedStatement preparedStatement = connection.prepareStatement(findAll);
         ResultSet resultSet = preparedStatement.executeQuery();
-        WalletList walletList = new WalletList();
+        List<Wallet> walletList = new ArrayList<>();
         while (resultSet.next()) {
             walletList.add(new Wallet(resultSet.getInt("id"),
                     resultSet.getInt("amount")));
         }
+        cache.put(findAll, walletList);
         return walletList;
     }
-    public Wallet findById(Integer id) throws SQLException{
+
+    public Wallet findById(Integer id) throws SQLException {
         String findById = "SELECT * FROM wallet " +
                 "WHERE id = ?";
+        String cacheKey=findById.replace("?",String.valueOf(id));
+        if (cache.containsKey(cacheKey))
+            return cache.get(cacheKey).get(0);
         PreparedStatement preparedStatement = connection.prepareStatement(findById);
-        preparedStatement.setInt(1,id);
+        preparedStatement.setInt(1, id);
         ResultSet resultSet = preparedStatement.executeQuery();
         Wallet wallet = null;
         if (resultSet.next()) {
             wallet = new Wallet(resultSet.getInt("id"),
                     resultSet.getInt("amount"));
         }
+        List <Wallet> walletList = new ArrayList<>(1);
+        walletList.add(wallet);
+        cache.put(cacheKey,walletList);
         return wallet;
     }
 }
